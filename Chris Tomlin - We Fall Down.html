@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notion Interactive Chord Transposer</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            notion: {
+              bg: '#ffffff',
+              darkBg: '#191919',
+              card: '#f7f6f3',
+              darkCard: '#252525',
+              border: '#e9e9e8',
+              darkBorder: '#373737',
+              accent: '#2eaadc',
+              chord: '#2563eb',
+              darkChord: '#60a5fa'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .chord-highlight {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    .dark .chord-highlight {
+      color: #60a5fa;
+    }
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="bg-notion-bg dark:bg-notion-darkBg text-slate-800 dark:text-slate-200 transition-colors duration-200 min-h-screen flex flex-col p-3 md:p-6">
+
+  <div class="max-w-6xl mx-auto w-full flex-grow flex flex-col gap-5">
+    
+    <!-- Top Header Bar -->
+    <header class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-notion-border dark:border-notion-darkBorder">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl shadow-sm">
+          <i class="fa-solid fa-guitar text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            Chord Sheet Transposer
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">Notion Ready</span>
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Transposes bracketed [Chords] or raw monospaced chord tabs on the fly.</p>
+        </div>
+      </div>
+
+      <!-- Theme & Action Tools -->
+      <div class="flex items-center gap-2">
+        <button id="preset-button" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-music"></i> Load Preset
+        </button>
+        <button id="notion-help-btn" class="px-3 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 rounded-lg transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-info"></i> How to Embed
+        </button>
+        <button id="theme-toggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Light/Dark Theme">
+          <i class="fa-solid fa-moon text-base" id="theme-icon"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-notion-card dark:bg-notion-darkCard p-4 rounded-xl border border-notion-border dark:border-notion-darkBorder shadow-sm">
+      
+      <!-- Shift Controls -->
+      <div class="md:col-span-4 flex flex-col justify-center gap-1.5">
+        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Semitone Shift</label>
+        <div class="flex items-center gap-2">
+          <button id="btn-minus" class="flex-1 py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all shadow-sm">
+            <i class="fa-solid fa-minus text-xs"></i> -1
+          </button>
+          <div id="semitone-display" class="px-4 py-1.5 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 rounded-lg text-center font-mono font-bold text-blue-600 dark:text-blue-400 min-w-[70px]">
+            0 semitones
+          </div>
+          <button id="btn-plus" class="flex-1 py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 font-bold text-slate-700 dark:text-slate-200 active:scale-95 transition-all shadow-sm">
+            <i class="fa-solid fa-plus text-xs"></i> +1
+          </button>
+          <button id="btn-reset" class="py-2 px-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors text-xs font-semibold" title="Reset Key Shift">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Capo Selector -->
+      <div class="md:col-span-4 flex flex-col justify-center gap-1.5">
+        <label for="capo-select" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Capo Position</label>
+        <select id="capo-select" class="w-full py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm">
+          <option value="0">No Capo (Standard Key)</option>
+          <option value="1">Capo 1st Fret</option>
+          <option value="2">Capo 2nd Fret</option>
+          <option value="3">Capo 3rd Fret</option>
+          <option value="4">Capo 4th Fret</option>
+          <option value="5">Capo 5th Fret</option>
+          <option value="6">Capo 6th Fret</option>
+          <option value="7">Capo 7th Fret</option>
+        </select>
+      </div>
+
+      <!-- Sounding Key Display & Notation Preference -->
+      <div class="md:col-span-4 flex flex-col justify-center gap-1.5">
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Notation Style</label>
+          <div class="flex items-center gap-2">
+            <button id="acc-flats" class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">Flats (♭)</button>
+            <button id="acc-sharps" class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white transition-colors">Sharps (#)</button>
+          </div>
+        </div>
+        <div id="calculated-key-summary" class="w-full py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 font-medium flex items-center justify-between shadow-sm">
+          <span>Overall Pitch Shift:</span>
+          <span id="sounding-key-tag" class="font-bold text-blue-600 dark:text-blue-400 font-mono text-sm">+0 Semitones</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-grow">
+      
+      <!-- Raw Tab Input Pane -->
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between items-center">
+          <label for="chord-input" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-to-square"></i> Input Tab / Chords
+          </label>
+          <button id="clear-input" class="text-xs text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+            Clear Editor
+          </button>
+        </div>
+        <textarea id="chord-input" spellcheck="false" class="w-full flex-grow min-h-[350px] p-4 bg-white dark:bg-slate-900 border border-notion-border dark:border-notion-darkBorder rounded-xl font-mono text-xs md:text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none leading-relaxed shadow-sm" placeholder="Paste your chord sheet here...&#10;&#10;Supports both:&#10;1) Chords above lyrics&#10;D        A        Bm7&#10;We fall down, we lay our crown&#10;&#10;2) Bracketed chords&#10;[D]We fall [A]down, we lay our [Bm7]crown"></textarea>
+      </div>
+
+      <!-- Transposed Output Viewer Pane -->
+      <div class="flex flex-col gap-2">
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-eye"></i> Live Transposed Output
+          </label>
+          <div class="flex items-center gap-2">
+            <button id="btn-copy" class="px-2.5 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md transition-colors flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> Copy Tab
+            </button>
+          </div>
+        </div>
+        <div id="chord-output" class="w-full flex-grow min-h-[350px] p-4 bg-notion-card dark:bg-notion-darkCard border border-notion-border dark:border-notion-darkBorder rounded-xl font-mono text-xs md:text-sm text-slate-800 dark:text-slate-200 overflow-auto whitespace-pre leading-relaxed shadow-sm">
+          <!-- Transposed tab dynamically renders here -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="notion-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-900 max-w-md w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> How to Embed in Notion
+        </h3>
+        <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <ol class="text-xs text-slate-600 dark:text-slate-300 space-y-3 list-decimal list-inside leading-relaxed">
+        <li><strong>Host this file</strong> or upload it to GitHub Pages / Vercel / Netlify to get a direct web link (URL).</li>
+        <li>Open your page or database inside <strong>Notion</strong>.</li>
+        <li>Type <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-mono">/embed</code> and hit <kbd class="font-sans font-semibold">Enter</kbd>.</li>
+        <li>Paste the URL of your hosted transposer app and click <strong>Embed Link</strong>.</li>
+        <li>Drag the bottom corner handle in Notion to expand the frame size.</li>
+      </ol>
+
+      <div class="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-xl text-xs text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-900/50">
+        <i class="fa-solid fa-circle-check mr-1"></i> Once embedded, your chord transposer works continuously inside your Notion songbook workspace!
+      </div>
+
+      <button id="modal-ok-btn" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition-colors">
+        Got it!
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* Musical scale definitions for transposition engine */
+    const SHARPS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FLATS  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+    /* Preset song tab data */
+    const PRESET_WE_FALL_DOWN = `[Intro]
+D  G  Bm7  A
+D  G  Bm7  A
+
+[Verse 1]
+D       A          Bm7          G            Em
+We fall down, we lay our crown at the feet of Jesus
+D             A            Bm7                     G       A
+The greatness of His mercy and love at the feet of Jesus
+
+[Chorus]
+       G    Bm7  A
+We cry Holy, Holy, Holy
+       G    Bm7  A
+We cry Holy, Holy, Holy
+       G    Bm7  A       D
+We cry Holy, Holy, Holy is the Lamb
+
+[Interlude]
+D  G  Bm7  A
+
+[Verse 2]
+D       A          Bm7                    G       Em
+No more fears, You've dried our tears at the feet of Jesus
+D           A              Bm7               G       A
+Grace abounds to all who've found the feet of Jesus
+
+[Outro]
+D  G  Bm7  A`;
+
+    /* State variables */
+    let state = {
+      semitones: 0,
+      capo: 0,
+      preferSharps: true,
+      rawInput: PRESET_WE_FALL_DOWN
+    };
+
+    /* DOM Elements */
+    const chordInput = document.getElementById('chord-input');
+    const chordOutput = document.getElementById('chord-output');
+    const semitoneDisplay = document.getElementById('semitone-display');
+    const capoSelect = document.getElementById('capo-select');
+    const soundingKeyTag = document.getElementById('sounding-key-tag');
+    const btnMinus = document.getElementById('btn-minus');
+    const btnPlus = document.getElementById('btn-plus');
+    const btnReset = document.getElementById('btn-reset');
+    const btnSharps = document.getElementById('acc-sharps');
+    const btnFlats = document.getElementById('acc-flats');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnPreset = document.getElementById('preset-button');
+    const btnClear = document.getElementById('clear-input');
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const notionHelpBtn = document.getElementById('notion-help-btn');
+    const notionModal = document.getElementById('notion-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const modalOkBtn = document.getElementById('modal-ok-btn');
+
+
+    /**
+     * Finds index of a root chord note in scale
+     */
+    function normalizeNoteIndex(note) {
+      let idx = SHARPS.indexOf(note);
+      if (idx !== -1) return idx;
+      return FLATS.indexOf(note);
+    }
+
+    /**
+     * Transposes a single note by given semitone offset
+     */
+    function transposeNote(note, shift, preferSharps) {
+      const idx = normalizeNoteIndex(note);
+      if (idx === -1) return note; // Return unchanged if not found
+      
+      let newIdx = (idx + shift) % 12;
+      if (newIdx < 0) newIdx += 12;
+
+      return preferSharps ? SHARPS[newIdx] : FLATS[newIdx];
+    }
+
+    /**
+     * Regular expression to match standard chord formats:
+     * Examples: C, C#m, Dm7, F#m7b5, Bb/D, Cadd9, G/B, Bm7(11)
+     */
+    const CHORD_REGEX = /\b([A-G][b#]?)(m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:[b#]\d+)?(?:\/[A-G][b#]?)?\b/g;
+
+    /**
+     * Transposes a full single chord string including bass slash chords (e.g. G/B -> A/C#)
+     */
+    function transposeChordToken(chordStr, shift, preferSharps) {
+      return chordStr.replace(/([A-G][b#]?)/g, (match) => {
+        return transposeNote(match, shift, preferSharps);
+      });
+    }
+
+    /**
+     * Detects whether a single line is predominantly a line of chords rather than lyrics
+     */
+    function isChordLine(line) {
+      // Ignore section headers like [Verse] or [Chorus]
+      if (/^\s*\[(Verse|Chorus|Intro|Outro|Bridge|Tag|Interlude)[^\]]*\]\s*$/i.test(line)) {
+        return false;
+      }
+
+      const trimmed = line.trim();
+      if (!trimmed) return false;
+
+      // Extract tokens separated by whitespace
+      const tokens = trimmed.split(/\s+/);
+      let chordMatches = 0;
+
+      tokens.forEach(tok => {
+        // Test if token matches standard chord pattern strictly
+        if (/^[A-G][b#]?(m|maj|min|dim|aug|sus|add)?\d*(?:[b#]\d+)?(\/[A-G][b#]?)?$/.test(tok)) {
+          chordMatches++;
+        }
+      });
+
+      // If at least 60% of word tokens are chords, treat as a chord line
+      return (chordMatches / tokens.length) >= 0.6;
+    }
+
+
+    /**
+     * Processes input tab text and returns styled HTML with transposed chords
+     */
+    function processAndRenderTab() {
+      const text = state.rawInput;
+      const totalShift = state.semitones + parseInt(state.capo, 10);
+      const lines = text.split('\n');
+
+      let outputHtml = '';
+
+      lines.forEach(line => {
+        // Handle Bracketed Chords: [D]We fall [A]down
+        if (line.includes('[') && line.includes(']')) {
+          let lineFormatted = line.replace(/\[([^\]]+)\]/g, (match, chordInner) => {
+            const transposed = transposeChordToken(chordInner, totalShift, state.preferSharps);
+            return `<span class="chord-highlight">[${transposed}]</span>`;
+          });
+          outputHtml += lineFormatted + '\n';
+        } 
+        // Handle Line-above-Lyrics or Monospaced Chord Lines
+        else if (isChordLine(line)) {
+          // Replace chords line while preserving exact column spacing alignment
+          let lineTransposed = line.replace(/\b([A-G][b#]?(?:m|maj|min|dim|aug|sus|add)?\d*(?:[b#]\d+)?(?:\/[A-G][b#]?)?)\b/g, (match) => {
+            return transposeChordToken(match, totalShift, state.preferSharps);
+          });
+          
+          // Wrap in chord highlight span
+          outputHtml += `<span class="chord-highlight">${lineTransposed}</span>\n`;
+        } 
+        // Standard Lyrics or Section Headers
+        else {
+          // Highlight Section Headers like [Verse 1], [Chorus]
+          if (/^\s*\[.*\]\s*$/.test(line)) {
+            outputHtml += `<span class="font-bold text-slate-900 dark:text-slate-100">${line}</span>\n`;
+          } else {
+            outputHtml += line + '\n';
+          }
+        }
+      });
+
+      chordOutput.innerHTML = outputHtml;
+      updateControlUI();
+    }
+
+    /**
+     * Updates active control displays, labels, and badges
+     */
+    function updateControlUI() {
+      // Semitone display label
+      const prefix = state.semitones > 0 ? '+' : '';
+      semitoneDisplay.textContent = `${prefix}${state.semitones} st`;
+
+      // Pitch shift badge
+      const totalShift = state.semitones + parseInt(state.capo, 10);
+      const shiftPrefix = totalShift > 0 ? '+' : '';
+      soundingKeyTag.textContent = `${shiftPrefix}${totalShift} Semitones`;
+
+      // Notation toggle buttons
+      if (state.preferSharps) {
+        btnSharps.className = "px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white transition-colors";
+        btnFlats.className = "px-2 py-0.5 text-xs font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors";
+      } else {
+        btnFlats.className = "px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white transition-colors";
+        btnSharps.className = "px-2 py-0.5 text-xs font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors";
+      }
+    }
+
+
+    // Live Input Event
+    chordInput.addEventListener('input', (e) => {
+      state.rawInput = e.target.value;
+      processAndRenderTab();
+    });
+
+    // Transpose Controls
+    btnPlus.addEventListener('click', () => {
+      state.semitones++;
+      processAndRenderTab();
+    });
+
+    btnMinus.addEventListener('click', () => {
+      state.semitones--;
+      processAndRenderTab();
+    });
+
+    btnReset.addEventListener('click', () => {
+      state.semitones = 0;
+      state.capo = 0;
+      capoSelect.value = "0";
+      processAndRenderTab();
+    });
+
+    capoSelect.addEventListener('change', (e) => {
+      state.capo = parseInt(e.target.value, 10);
+      processAndRenderTab();
+    });
+
+    btnSharps.addEventListener('click', () => {
+      state.preferSharps = true;
+      processAndRenderTab();
+    });
+
+    btnFlats.addEventListener('click', () => {
+      state.preferSharps = false;
+      processAndRenderTab();
+    });
+
+    // Load Preset
+    btnPreset.addEventListener('click', () => {
+      state.rawInput = PRESET_WE_FALL_DOWN;
+      chordInput.value = PRESET_WE_FALL_DOWN;
+      state.semitones = 0;
+      state.capo = 4;
+      capoSelect.value = "4";
+      processAndRenderTab();
+    });
+
+    // Clear Input
+    btnClear.addEventListener('click', () => {
+      state.rawInput = '';
+      chordInput.value = '';
+      processAndRenderTab();
+    });
+
+    // Copy Output to Clipboard
+    btnCopy.addEventListener('click', () => {
+      const plainText = chordOutput.innerText;
+      
+      // Fallback copy execution for iFrame safety
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = plainText;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      
+      try {
+        document.execCommand('copy');
+        btnCopy.innerHTML = `<i class="fa-solid fa-check text-green-500"></i> Copied!`;
+        setTimeout(() => {
+          btnCopy.innerHTML = `<i class="fa-regular fa-copy"></i> Copy Tab`;
+        }, 2000);
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+      document.body.removeChild(tempTextArea);
+    });
+
+    // Theme Toggle Handler
+    themeToggle.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      themeIcon.className = isDark ? 'fa-solid fa-sun text-amber-400' : 'fa-solid fa-moon text-slate-600';
+    });
+
+    // Modal Instruction Controls
+    notionHelpBtn.addEventListener('click', () => {
+      notionModal.classList.remove('hidden');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      notionModal.classList.add('hidden');
+    });
+
+    modalOkBtn.addEventListener('click', () => {
+      notionModal.classList.add('hidden');
+    });
+
+    // Initialize with Preset Data on Load
+    window.onload = function() {
+      chordInput.value = PRESET_WE_FALL_DOWN;
+      state.capo = 4;
+      capoSelect.value = "4";
+      processAndRenderTab();
+    };
+  </script>
+</body>
+</html>
